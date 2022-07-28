@@ -84,17 +84,31 @@ impl Ion {
         ).sqrt()
     }
 
-    pub fn bond_angle(ioni: &Ion, ionj: &Ion, ionk: &Ion) -> f64 {
-        let norm_const = ioni.bond_length(&ionj);
-        let x_ji = ioni.x - ionj.x;
-        let y_ji = ioni.y - ionj.y;
-        let z_ji = ioni.z - ionj.z;
-        let x_jk = ionk.x - ionj.x;
-        let y_jk = ionk.y - ionj.y;
-        let z_jk = ionk.z - ionj.z;
-        ((x_ji*x_jk + y_ji*y_jk + z_ji*z_jk)
-        /(norm_const*norm_const)).acos()
+    pub fn bond_vector(&self, other: &Ion) -> (f64,f64,f64) {
+        (other.x-self.x,other.y-self.y,other.z-self.z)
     }
+
+    pub fn bond_angle(ioni: &Ion, ionj: &Ion, ionk: &Ion) -> f64 {
+        let e_ji = ionj.bond_vector(&ioni);
+        let e_jk = ionj.bond_vector(&ionk);
+        ((e_ji.0*e_jk.0 + e_ji.1*e_jk.1 + e_ji.2*e_jk.2)
+        /(ionj.bond_length(&ioni)*ionj.bond_length(&ionk))).acos()
+    }
+
+    pub fn out_of_plane_angle(ioni: &Ion,ionj: &Ion,ionk: &Ion,ionl: &Ion) -> f64 {
+        let sin_phi_jkl = Ion::bond_angle(ionj,ionk,ionl).sin();
+        let r_kj = ionk.bond_vector(&ionj);
+        let r_kl = ionk.bond_vector(&ionl);
+        let r_ki = ionk.bond_vector(&ioni);
+        let l_kj = ionk.bond_length(&ionj);
+        let l_kl = ionk.bond_length(&ionl);
+        let l_ki = ionk.bond_length(&ioni);
+        let scalar_triple = r_ki.0*(r_kj.1*r_kl.2-r_kl.1*r_kj.2)
+                          - r_ki.1*(r_kj.0*r_kl.2-r_kl.0*r_kj.2)
+                          + r_ki.2*(r_kj.0*r_kl.1-r_kl.0*r_kj.1);
+        scalar_triple/(l_kj*l_kl*l_ki*sin_phi_jkl)
+    }
+
 }
 
 pub fn all_bond_lengths(mol: &Vec<Ion>) -> io::Result<Vec<Vec<f64>>> {
